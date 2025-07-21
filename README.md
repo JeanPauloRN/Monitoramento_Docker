@@ -1,1 +1,142 @@
 # Monitoramento_Docker
+
+Este projeto oferece um ecossistema completo de monitoramento utilizando containers Docker, facilmente orquestrados via **docker-compose**. São incluídos Zabbix (com PostgreSQL), Grafana e Prometheus, permitindo deploy rápido para testes, ambiente de desenvolvimento ou produção.
+
+## Estrutura de Pastas
+
+A estrutura do projeto está organizada para separar dados persistentes e configurações de cada serviço, facilitando backup, versionamento e personalização. Veja um exemplo:
+
+```
+Monitoramento_Docker/
+├── docker-compose.yml
+├── prometheus/
+│   ├── config/
+│   │   └── prometheus.yml
+│   └── data/
+├── grafana/
+│   ├── config/
+│   │   └── datasources.yml
+│   └── data/
+└── zabbix/
+    └── data/
+        └── postgresql/
+```
+
+- **docker-compose.yml**: arquivo principal para subir todo o ambiente de monitoramento.
+- **prometheus/config/prometheus.yml**: configuração dos targets e jobs do Prometheus.
+- **prometheus/data/**: persistência de dados do Prometheus.
+- **grafana/config/datasources.yml**: configurações das fontes de dados do Grafana (opcional).
+- **grafana/data/**: persistência de dados do Grafana (dashboards, plugins, etc).
+- **zabbix/data/postgresql/**: persistência dos dados do banco PostgreSQL usado pelo Zabbix Server.
+
+**Obs:** Altere os caminhos dos volumes no docker-compose conforme sua necessidade ou organização no host.
+
+## Serviços incluídos
+
+Principais serviços orquestrados pelo `docker-compose.yml`:
+
+- **Zabbix Server**: Ferramenta de monitoramento principal, integrada ao banco PostgreSQL.
+- **Zabbix Web**: Interface web para gerenciamento e visualização do Zabbix.
+- **Zabbix Agent**: Coleta dados localmente e envia ao Zabbix Server.
+- **Zabbix Postgres**: Banco de dados PostgreSQL persistente para o Zabbix.
+- **Grafana**: Visualização de dados, dashboards customizáveis, com plugin Zabbix já instalado.
+- **Prometheus**: Coletor de métricas para ambientes e aplicações.
+
+
+## Como usar
+
+1. **Clone o repositório:**
+
+```bash
+git clone https://github.com/JeanPauloRN/Monitoramento_Docker.git
+cd Monitoramento_Docker
+```
+
+2. **Ajuste os volumes:**
+
+Modifique os caminhos dos volumes no `docker-compose.yml` ou crie as pastas correspondentes no seu host conforme a sua preferência.
+3. **Adicione arquivos de configuração:**
+    - Coloque arquivos como `prometheus.yml` (Prometheus) e `datasources.yml` (Grafana) nas respectivas pastas `config` apontadas no compose.
+    - Edite as configurações segundo seu ambiente.
+4. **Suba os containers:**
+
+```bash
+docker-compose up -d
+```
+
+O Docker irá baixar as imagens, criar as redes necessárias e iniciar os serviços com persistência de dados configurada.
+
+## Dicas e Observações
+
+- As portas padrão de cada serviço são expostas localmente conforme `docker-compose.yml`.
+    - Zabbix Server: `10051`
+    - Zabbix Agent: `10050`
+    - Zabbix Web: `8080`
+    - Grafana: `3000`
+    - Prometheus: `9090`
+    - PostgreSQL: `5432`
+- Usuário e senha do Grafana padrão:
+    - Usuário: **admin**
+    - Senha: **admin123** (definida na variável de ambiente)
+- **Volumes persistentes**: Certifique-se de que os caminhos usados nos volumes existem e estão acessíveis para o Docker.
+- Você pode customizar configurações e dashboards pela UI do Grafana e Zabbix.
+
+
+## Exemplo de docker-compose.yml
+
+```yaml
+# docker-compose.yml resumido para referência
+services:
+  zabbix-postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment: [...]
+    volumes:
+      - ./zabbix/data/postgresql:/var/lib/postgresql/data
+      - /etc/localtime:/etc/localtime:ro
+
+  zabbix-server:
+    image: zabbix/zabbix-server-pgsql:latest
+    ports:
+      - "10051:10051"
+    environment: [...]
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+
+  zabbix-web:
+    image: zabbix/zabbix-web-nginx-pgsql:latest
+    ports:
+      - "8080:8080"
+    environment: [...]
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+
+  zabbix-agent:
+    image: zabbix/zabbix-agent:latest
+    ports:
+      - "10050:10050"
+    environment: [...]
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment: [...]
+    volumes:
+      - ./grafana/data:/var/lib/grafana 
+      - ./grafana/config/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/config/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus/data:/etc/prometheus
+```
+
+
+## Enjoy This !
