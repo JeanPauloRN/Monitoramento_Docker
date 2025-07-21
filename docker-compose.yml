@@ -10,7 +10,7 @@ services:
       - POSTGRES_PASSWORD=zabbixpass
       - POSTGRES_DB=zabbix
     volumes: #volume do /data
-      - //home/jean-carmo/Documentos/Projetos/Monitoramento/zabbix/data/postgresql:/var/lib/postgresql/data
+      - /home/jean-carmo/Documentos/Projetos/Monitoramento/zabbix/data/postgresql:/var/lib/postgresql/data
       - /etc/localtime:/etc/localtime:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U zabbix -d zabbix"]
@@ -82,8 +82,8 @@ services:
     ports:
       - "3000:3000"
     volumes: #Persistência de dados do Grafana e personalização de DataSources
-      - //home/jean-carmo/Documentos/Projetos/Monitoramento/grafana/data:/var/lib/grafana 
-      - //home/jean-carmo/Documentos/Projetos/Monitoramento/grafana/config/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+      - /home/jean-carmo/Documentos/Projetos/Monitoramento/grafana/data:/var/lib/grafana 
+      - /home/jean-carmo/Documentos/Projetos/Monitoramento/grafana/config/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin123
       - GF_INSTALL_PLUGINS=alexanderzobnin-zabbix-app
@@ -96,5 +96,5 @@ services:
     ports:
       - "9090:9090"
     volumes: #Persistência de dados do Prometheus e personalização dos Targets
-      - //home/jean-carmo/Documentos/Projetos/Monitoramento/prometheus/config/prometheus.yml:/etc/prometheus/prometheus.yml
-      - //home/jean-carmo/Documentos/Projetos/Monitoramento/prometheus/data:/etc/prometheus
+      - /home/jean-carmo/Documentos/Projetos/Monitoramento/prometheus/config/prometheus.yml:/etc/prometheus/prometheus.yml
+      - /home/jean-carmo/Documentos/Projetos/Monitoramento/prometheus/data:/etc/prometheus
