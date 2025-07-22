@@ -82,61 +82,111 @@ O Docker irá baixar as imagens, criar as redes necessárias e iniciar os servi�
 - Você pode customizar configurações e dashboards pela UI do Grafana e Zabbix.
 
 
-## Exemplo de docker-compose.yml
+## docker-compose.yml
 
 ```yaml
-# docker-compose.yml resumido para referência
+# docker-compose.yml
 services:
   zabbix-postgres:
     image: postgres:16-alpine
+    container_name: zabbix-postgres
+    restart: unless-stopped
     ports:
       - "5432:5432"
-    environment: [...]
-    volumes:
-      - ./zabbix/data/postgresql:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=zabbix
+      - POSTGRES_PASSWORD=zabbixpass
+      - POSTGRES_DB=zabbix
+    volumes: #volume do /data
+      - /home/jean-carmo/Documentos/Projetos/Monitoramento/zabbix/data/postgresql:/var/lib/postgresql/data
       - /etc/localtime:/etc/localtime:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zabbix -d zabbix"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   zabbix-server:
     image: zabbix/zabbix-server-pgsql:latest
+    container_name: zabbix-server
+    restart: unless-stopped
+    environment:
+      - DB_SERVER_HOST=zabbix-postgres
+      - POSTGRES_USER=zabbix
+      - POSTGRES_PASSWORD=zabbixpass
+      - POSTGRES_DB=zabbix
+      - ZBX_NODEADDRESS=zabbix-server
+      - ZBX_NODEADDRESSPORT=10051
+    depends_on:
+      zabbix-postgres:
+        condition: service_healthy
     ports:
       - "10051:10051"
-    environment: [...]
     volumes:
       - /etc/localtime:/etc/localtime:ro
 
   zabbix-web:
     image: zabbix/zabbix-web-nginx-pgsql:latest
+    container_name: zabbix-web
+    restart: unless-stopped
+    environment:
+      - DB_SERVER_HOST=zabbix-postgres
+      - POSTGRES_USER=zabbix
+      - POSTGRES_PASSWORD=zabbixpass
+      - POSTGRES_DB=zabbix
+      - ZBX_SERVER_HOST=zabbix-server
+      - ZBX_SERVER_PORT=10051
+      - PHP_TZ=America/Sao_Paulo
+    depends_on:
+      zabbix-server:
+        condition: service_started
+      zabbix-postgres:
+        condition: service_healthy
     ports:
       - "8080:8080"
-    environment: [...]
     volumes:
       - /etc/localtime:/etc/localtime:ro
 
   zabbix-agent:
     image: zabbix/zabbix-agent:latest
+    container_name: zabbix-agent
+    restart: unless-stopped
+    environment:
+      - ZBX_SERVER_HOST=zabbix-server
+      - ZBX_ACTIVE_ALLOW=false
+      - ZBX_HOSTNAME=zabbix-agent
     ports:
       - "10050:10050"
-    environment: [...]
+    depends_on:
+      - zabbix-server
     volumes:
       - /etc/localtime:/etc/localtime:ro
 
   grafana:
     image: grafana/grafana:latest
+    container_name: grafana
+    restart: unless-stopped
+    user: "0"
     ports:
       - "3000:3000"
-    environment: [...]
-    volumes:
-      - ./grafana/data:/var/lib/grafana 
-      - ./grafana/config/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
-
+    volumes: #Persistência de dados do Grafana e personalização de DataSources
+      - /home/jean-carmo/Documentos/Projetos/Monitoramento/grafana/data:/var/lib/grafana 
+      - /home/jean-carmo/Documentos/Projetos/Monitoramento/grafana/config/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+      - GF_INSTALL_PLUGINS=alexanderzobnin-zabbix-app
+    
+  
   prometheus:
     image: prom/prometheus:latest
+    container_name: prometheus
+    restart: unless-stopped
     ports:
       - "9090:9090"
-    volumes:
-      - ./prometheus/config/prometheus.yml:/etc/prometheus/prometheus.yml
-      - ./prometheus/data:/etc/prometheus
+    volumes: #Persistência de dados do Prometheus e personalização dos Targets
+      - /home/jean-carmo/Documentos/Projetos/Monitoramento/prometheus/config/prometheus.yml:/etc/prometheus/prometheus.yml
+      - /home/jean-carmo/Documentos/Projetos/Monitoramento/prometheus/data:/etc/prometheus
 ```
 
 
-## Enjoy This !
+### Enjoy This !
